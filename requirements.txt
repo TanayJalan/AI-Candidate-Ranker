@@ -1,9 +1,16 @@
-mammoth
+# Core ML
 sentence-transformers
 faiss-cpu
-pandas
 numpy
+torch
+
+# Data
+pandas
+
+# Document parsing
+mammoth
+
+# Utilities
 tqdm
-anthropic
 pyyaml
 python-dotenv

@@ -1,12 +1,24 @@
-# data
+# data artifacts
 *.jsonl
 *.npy
 *.faiss
 *.pkl
+*.parquet
 
 # python
 .venv/
 __pycache__/
+*.pyc
 
 # vscode
 .vscode/
+
+# env
+.env
+
+# macOS
+.DS_Store
+
+# output
+data/processed/
+data/output/
