@@ -1,0 +1,9 @@
+mammoth
+sentence-transformers
+faiss-cpu
+pandas
+numpy
+tqdm
+anthropic
+pyyaml
+python-dotenv

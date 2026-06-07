@@ -1,0 +1,12 @@
+# data
+*.jsonl
+*.npy
+*.faiss
+*.pkl
+
+# python
+.venv/
+__pycache__/
+
+# vscode
+.vscode/
