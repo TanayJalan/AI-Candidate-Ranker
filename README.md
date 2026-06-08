@@ -9,6 +9,8 @@ app_port: 7860
 ---
 # 🎯 AI Candidate Ranking System
 
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/TanayJalan/candidate-matcher)
+
 A hybrid AI-powered candidate ranking engine built for the **Redrob Hackathon**. It goes beyond keyword matching to evaluate job fit the way a great recruiter would — through semantic understanding, structured signal analysis, behavioral profiling, and honeypot detection.
 
 ## Architecture
