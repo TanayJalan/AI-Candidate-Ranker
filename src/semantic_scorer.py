@@ -5,6 +5,12 @@ Encodes job description and candidate texts using sentence-transformers,
 then computes cosine similarity via FAISS for fast retrieval.
 """
 
+import os
+
+# Prevent macOS multiprocessing fork issues — must be set before imports
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["OMP_NUM_THREADS"] = "1"
+
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
@@ -119,9 +125,10 @@ class SemanticScorer:
         embeddings = self.model.encode(
             texts,
             batch_size=EMBEDDING_BATCH_SIZE,
-            show_progress_bar=True,
+            show_progress_bar=False,
             convert_to_numpy=True,
         )
+        print(f"  Encoding complete. Shape: {embeddings.shape}")
 
         # Normalize for cosine similarity
         faiss.normalize_L2(embeddings)

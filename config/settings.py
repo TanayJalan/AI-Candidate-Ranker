@@ -23,7 +23,7 @@ SUBMISSION_CSV = OUTPUT_DIR / "submission.csv"
 EMBEDDINGS_CACHE = PROCESSED_DIR / "candidate_embeddings.npy"
 
 # ─── Model settings ─────────────────────────────────────────────────────────
-EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"  # 384-dim, fast, good quality
+EMBEDDING_MODEL_NAME = "all-mpnet-base-v2"  # 768-dim, best quality general-purpose
 EMBEDDING_BATCH_SIZE = 64
 
 # ─── Scoring weights (must sum to 1.0) ───────────────────────────────────────
@@ -137,4 +137,4 @@ BONUS_SAVED_BY_RECRUITERS = 0.20  # saved by recruiters in 30d
 
 # ─── Output settings ─────────────────────────────────────────────────────────
 TOP_K = 100  # Number of candidates to rank in submission
-REASONING_MAX_LENGTH = 200  # Max chars per reasoning string
+REASONING_MAX_LENGTH = 300  # Max chars per reasoning string (spec allows generous length)

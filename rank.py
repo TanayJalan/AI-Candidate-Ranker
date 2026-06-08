@@ -42,6 +42,7 @@ from src.structured_scorer import score_all_candidates as score_structured
 from src.behavioral_scorer import score_all_candidates as score_behavioral
 from src.hybrid_ranker import rank_candidates, print_ranking_summary
 from src.reasoning_generator import generate_all_reasoning
+from src.honeypot_detector import detect_all_honeypots
 
 
 def main():
@@ -97,6 +98,12 @@ def main():
     actual_k = min(args.top_k, len(candidates))
     print(f"  Will rank top {actual_k} of {len(candidates)} candidates")
 
+    # ── Step 2.5: Honeypot Detection ─────────────────────────────────────
+    print("\n[2.5/7] Running honeypot detection...")
+    honeypot_results = detect_all_honeypots(candidates, verbose=args.verbose)
+    honeypot_ids = {cid for cid, r in honeypot_results.items() if r["is_honeypot"]}
+    print(f"  Flagged {len(honeypot_ids)} potential honeypots")
+
     # ── Step 3: Enrich Candidate Texts ───────────────────────────────────
     print("\n[3/7] Building rich text representations...")
     enriched = enrich_all_candidates(candidates)
@@ -124,6 +131,11 @@ def main():
     avg_str = sum(structured_scores.values()) / len(structured_scores) if structured_scores else 0
     print(f"  Average structured score: {avg_str:.4f}")
 
+    # Zero out honeypot structured scores
+    for cid in honeypot_ids:
+        if cid in structured_scores:
+            structured_scores[cid] *= 0.1  # Severely penalize, don't fully zero)
+
     # ── Step 6: Behavioral Scoring ───────────────────────────────────────
     print("\n[6/7] Computing behavioral scores...")
     behavioral_scores = score_behavioral(candidates)
@@ -140,8 +152,8 @@ def main():
         top_k=actual_k,
     )
 
-    # Generate reasoning strings
-    generate_all_reasoning(ranked)
+    # Generate reasoning strings (pass honeypot info)
+    generate_all_reasoning(ranked, honeypot_results=honeypot_results)
 
     # Print summary
     print_ranking_summary(ranked, top_n=min(15, actual_k))

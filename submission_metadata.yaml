@@ -1,0 +1,74 @@
+# Redrob Hackathon — Submission Metadata
+
+team_name: "TanayJalan"
+
+primary_contact:
+  name: "Tanay Jalan"
+  email: "tanayjalan@example.com"      # TODO: Replace with actual email
+  phone: "+91-XXXXXXXXXX"              # TODO: Replace with actual phone
+
+team_members:
+  - name: "Tanay Jalan"
+    email: "tanayjalan@example.com"    # TODO: Replace with actual email
+    role: "ML Engineer"
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "https://github.com/TanayJalan/Catcher"
+
+sandbox_link: ""  # TODO: Add Streamlit Cloud or HuggingFace Spaces URL after deployment
+
+reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
+
+# ============================================================================
+# Compute environment
+# ============================================================================
+compute:
+  platform: "MacBook"
+  cpu_cores: 8
+  ram_gb: 16
+  python_version: "3.11"
+  os: "macOS"
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: true        # Embedding model downloaded once
+  pre_computation_time_minutes: 2       # Model download on first run
+
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+ai_tools_used:
+  - "Claude"
+  - "Antigravity IDE"
+
+ai_usage_summary: |
+  Used Claude via Antigravity IDE for architecture discussion, code review,
+  debugging, and iterative development. All scoring logic, weight tuning,
+  and honeypot detection rules were designed through hands-on engineering
+  and data analysis. No candidate data was sent to any hosted LLM.
+
+# ============================================================================
+# Approach summary
+# ============================================================================
+methodology_summary: |
+  Hybrid 4-layer ranker with explicit trap detection. Semantic layer uses
+  sentence-transformers (all-mpnet-base-v2) + FAISS for profile-to-JD
+  similarity. Structured layer scores title match, skills (weighted by
+  proficiency × duration × endorsements), experience fit (Gaussian),
+  industry relevance, and education tier. A multiplicative keyword-stuffer
+  penalty catches weak-title traps. Behavioral layer integrates RedRob
+  platform signals (response rates, GitHub, profile completeness).
+  Honeypot detector flags impossible profiles via 7 consistency checks.
+  Weights: Structured 40%, Semantic 25%, Behavioral 25%, Bonus 10%.
+  Runtime: ~45 seconds for 50 candidates on CPU.
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true
