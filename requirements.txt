@@ -17,3 +17,6 @@ python-dotenv
 
 # Dashboard
 streamlit
+
+# Testing
+pytest
