@@ -245,6 +245,10 @@ with col2:
 if run_button:
     if uploaded_file is not None:
         data = json.loads(uploaded_file.read())
+        if not isinstance(data, list):
+            st.error("❌ Invalid file format: Expected a JSON list of candidates. You might have accidentally uploaded the schema or an invalid file!")
+            st.stop()
+            
         if len(data) > 100:
             st.warning(f"Uploaded file has {len(data)} candidates. Truncating to 100 for demo.")
             data = data[:100]
