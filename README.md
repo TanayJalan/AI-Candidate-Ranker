@@ -36,6 +36,10 @@ A hybrid AI-powered candidate ranking engine built for the **Redrob Hackathon**.
                     └───────────────────┘
 ```
 
+## Dataset
+
+The evaluation code was built and tested against the official dataset provided by the hackathon organizers. The raw candidate data schema and samples can be found here: [Organizer Drive Link](https://drive.google.com/file/d/1MfD47XvVdRKBGRAyzGOxDCEf2ve96Jjo/view)
+
 ## Quick Start (For Evaluators)
 
 We've included a convenience script that automatically installs dependencies and runs the entire pipeline with verbose output.
