@@ -4,7 +4,7 @@ A hybrid AI-powered candidate ranking engine built for the **Redrob Hackathon**.
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      AI CANDIDATE RANKER                            │
 ├─────────────┬──────────────┬──────────────┬────────────┬────────────┤
@@ -36,45 +36,50 @@ A hybrid AI-powered candidate ranking engine built for the **Redrob Hackathon**.
                     └───────────────────┘
 ```
 
-## Quick Start
+## Quick Start (For Evaluators)
 
-### Prerequisites
-
-- Python 3.10+
-- ~2GB disk space (for embedding model download)
-- 16GB RAM recommended
-
-### Setup
+We've included a convenience script that automatically installs dependencies and runs the entire pipeline with verbose output.
 
 ```bash
 git clone https://github.com/TanayJalan/Catcher.git
 cd Catcher
+chmod +x run.sh
+./run.sh
+```
+
+### Manual Execution
+
+If you prefer to run things manually:
+
+```bash
+# 1. Install dependencies
 pip install -r requirements.txt
-```
 
-### Produce Submission CSV
-
-```bash
-python rank.py --candidates ./candidates.jsonl --out ./submission.csv
-```
-
-### Run with Verbose Output
-
-```bash
+# 2. Produce Submission CSV
 python rank.py --candidates data/raw/sample_candidates.json --out data/output/submission.csv --verbose
 ```
 
 ### Launch Interactive Dashboard
 
+We built a Streamlit dashboard to satisfy the mandatory sandbox requirement. It visualizes score breakdowns, flags honeypots, and provides a deep dive into candidate reasoning.
+
 ```bash
-pip install streamlit
 streamlit run app.py
+```
+
+### Run Unit Tests
+
+We've included automated tests to prove the robustness of our ranking logic (e.g., Gaussian experience penalties and honeypot detection).
+
+```bash
+pytest tests/
 ```
 
 ## Project Structure
 
-```
+```text
 candidate_matcher/
+├── run.sh                   # Convenience execution wrapper
 ├── rank.py                  # Main entry point (7-step pipeline)
 ├── app.py                   # Streamlit interactive dashboard
 ├── config/
@@ -89,10 +94,13 @@ candidate_matcher/
 │   ├── hybrid_ranker.py     # Weighted combination + ranking
 │   ├── reasoning_generator.py # Fact-based reasoning strings
 │   └── honeypot_detector.py # Impossible profile detection
+├── tests/
+│   └── test_pipeline.py     # Unit tests for scoring logic
 ├── data/
 │   └── raw/                 # Input files (candidates, JD, schema)
-├── requirements.txt
-├── submission_metadata.yaml
+├── pitch.md                 # 2-minute defense of the architecture
+├── requirements.txt         
+├── submission_metadata.yaml # Hackathon metadata
 └── README.md
 ```
 
@@ -150,7 +158,7 @@ Each candidate gets a unique, fact-based reasoning string with:
 
 | Constraint | Our System |
 |------------|-----------|
-| Runtime ≤ 5 min | ✅ ~45 seconds for 50 candidates |
+| Runtime ≤ 5 min | ✅ ~47 seconds for 100 candidates |
 | Memory ≤ 16 GB | ✅ Peak ~2 GB |
 | CPU only | ✅ No GPU required |
 | No network | ✅ No API calls during ranking |
