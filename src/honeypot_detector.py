@@ -1,32 +1,9 @@
-"""
-Honeypot Detector
-
-Identifies candidates with subtly impossible profiles that signal
-they are synthetic "trap" entries in the dataset.
-
-Per the submission spec (~80 honeypots in the full dataset):
-- Impossible tenure: 8+ years at a company founded 3 years ago
-- Impossible skill proficiency: "expert" in 10+ skills with 0 months duration
-- Experience/career inconsistencies
-- Impossible endorsement/duration ratios
-
-Honeypot candidates get their scores zeroed to push them to the bottom.
-"""
-
 from typing import Dict, Any, List, Tuple
 from datetime import datetime
 import math
 
-
-# ─── Honeypot checks ─────────────────────────────────────────────────────────
-
 def _check_career_duration_mismatch(candidate: Dict) -> Tuple[bool, str]:
-    """
-    Check if total career history duration doesn't match claimed experience.
 
-    A real candidate's career history should roughly add up to their
-    claimed years of experience. Large mismatches (>3 years off) are suspicious.
-    """
     profile = candidate["profile"]
     career = candidate.get("career_history", [])
 
@@ -38,7 +15,6 @@ def _check_career_duration_mismatch(candidate: Dict) -> Tuple[bool, str]:
         job.get("duration_months", 0) for job in career
     )
 
-    # Allow some slack (job overlaps, rounding)
     if total_career_months > 0 and abs(total_career_months - claimed_months) > 36:
         return True, (
             f"career duration mismatch: {total_career_months/12:.1f}yr in history "
@@ -49,12 +25,7 @@ def _check_career_duration_mismatch(candidate: Dict) -> Tuple[bool, str]:
 
 
 def _check_impossible_skill_proficiency(candidate: Dict) -> Tuple[bool, str]:
-    """
-    Check for 'expert' proficiency claims with zero or near-zero duration.
 
-    A genuine expert in a skill should have significant time invested.
-    Having 3+ expert skills with 0 months is a strong honeypot signal.
-    """
     skills = candidate.get("skills", [])
     expert_zero = []
 
@@ -75,12 +46,7 @@ def _check_impossible_skill_proficiency(candidate: Dict) -> Tuple[bool, str]:
 
 
 def _check_excessive_expert_skills(candidate: Dict) -> Tuple[bool, str]:
-    """
-    Check for unrealistic number of expert-level skills.
 
-    Having 8+ expert skills is extremely rare in genuine candidates,
-    especially if combined with other suspicious signals.
-    """
     skills = candidate.get("skills", [])
     expert_count = sum(1 for s in skills if s.get("proficiency") == "expert")
 
@@ -91,11 +57,7 @@ def _check_excessive_expert_skills(candidate: Dict) -> Tuple[bool, str]:
 
 
 def _check_endorsement_anomalies(candidate: Dict) -> Tuple[bool, str]:
-    """
-    Check for impossibly high endorsements on skills with zero usage duration.
 
-    Getting 30+ endorsements on a skill you've used for 0 months is suspicious.
-    """
     skills = candidate.get("skills", [])
     suspicious = []
 
@@ -103,7 +65,6 @@ def _check_endorsement_anomalies(candidate: Dict) -> Tuple[bool, str]:
         endorsements = s.get("endorsements", 0)
         duration = s.get("duration_months", 0)
 
-        # Very high endorsements relative to very low duration
         if endorsements > 30 and duration <= 3:
             suspicious.append(
                 f"{s.get('name', 'unknown')} ({endorsements} endorsements, {duration}mo)"
@@ -116,12 +77,7 @@ def _check_endorsement_anomalies(candidate: Dict) -> Tuple[bool, str]:
 
 
 def _check_career_timeline_gaps(candidate: Dict) -> Tuple[bool, str]:
-    """
-    Check for impossible career timelines.
 
-    E.g., overlapping jobs that sum to more than the person's total experience,
-    or start_date after end_date.
-    """
     career = candidate.get("career_history", [])
     if len(career) < 2:
         return False, ""
@@ -129,7 +85,6 @@ def _check_career_timeline_gaps(candidate: Dict) -> Tuple[bool, str]:
     total_duration = sum(j.get("duration_months", 0) for j in career)
     claimed = candidate["profile"].get("years_of_experience", 0) * 12
 
-    # If career durations sum to >2x claimed experience, suspicious overlaps
     if claimed > 0 and total_duration > claimed * 2:
         return True, (
             f"career durations sum to {total_duration/12:.1f}yr "
@@ -140,11 +95,7 @@ def _check_career_timeline_gaps(candidate: Dict) -> Tuple[bool, str]:
 
 
 def _check_assessment_vs_proficiency(candidate: Dict) -> Tuple[bool, str]:
-    """
-    Check for contradictions between assessment scores and proficiency claims.
 
-    E.g., 'expert' proficiency but assessment score of 10/100.
-    """
     skills = candidate.get("skills", [])
     assessments = candidate.get("redrob_signals", {}).get(
         "skill_assessment_scores", {}
@@ -158,13 +109,10 @@ def _check_assessment_vs_proficiency(candidate: Dict) -> Tuple[bool, str]:
         name = s.get("name", "")
         prof = s.get("proficiency", "beginner")
 
-        # Check if this skill has an assessment
         for assess_name, score in assessments.items():
             if assess_name.lower() == name.lower():
-                # Expert claiming but low assessment
                 if prof == "expert" and score < 30:
                     contradictions.append(f"{name}: expert but scored {score}/100")
-                # Beginner claiming but perfect assessment
                 elif prof == "beginner" and score > 90:
                     contradictions.append(f"{name}: beginner but scored {score}/100")
 
@@ -175,11 +123,7 @@ def _check_assessment_vs_proficiency(candidate: Dict) -> Tuple[bool, str]:
 
 
 def _check_impossible_experience_for_career(candidate: Dict) -> Tuple[bool, str]:
-    """
-    Check for very short total experience but many different career entries.
 
-    E.g., 1.5 years experience but 5 different jobs is suspicious.
-    """
     profile = candidate["profile"]
     career = candidate.get("career_history", [])
 
@@ -190,20 +134,8 @@ def _check_impossible_experience_for_career(candidate: Dict) -> Tuple[bool, str]
     return False, ""
 
 
-# ─── Main detection function ─────────────────────────────────────────────────
-
 def detect_honeypot(candidate: Dict) -> Dict[str, Any]:
-    """
-    Run all honeypot checks on a single candidate.
 
-    Returns:
-        {
-            "is_honeypot": bool,
-            "confidence": float (0-1),
-            "flags": list of str,
-            "flag_count": int,
-        }
-    """
     checks = [
         _check_career_duration_mismatch,
         _check_impossible_skill_proficiency,
@@ -222,10 +154,6 @@ def detect_honeypot(candidate: Dict) -> Dict[str, Any]:
 
     flag_count = len(flags)
 
-    # Confidence scoring:
-    # 1 flag = 0.3 (could be edge case)
-    # 2 flags = 0.7 (likely honeypot)
-    # 3+ flags = 0.95 (almost certainly honeypot)
     if flag_count == 0:
         confidence = 0.0
     elif flag_count == 1:
@@ -247,12 +175,7 @@ def detect_all_honeypots(
     candidates: List[Dict],
     verbose: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
-    """
-    Run honeypot detection on all candidates.
 
-    Returns:
-        candidate_id → honeypot result dict
-    """
     results = {}
     flagged_count = 0
 

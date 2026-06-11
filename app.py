@@ -1,14 +1,3 @@
-"""
-AI Candidate Ranking System — Interactive Dashboard
-
-A Streamlit-based demo interface for the Redrob Hackathon.
-Allows organizers to upload candidate data and view ranked results
-with score breakdowns and reasoning.
-
-Usage:
-    streamlit run app.py
-"""
-
 import streamlit as st
 import pandas as pd
 import json
@@ -17,7 +6,6 @@ import time
 from pathlib import Path
 from io import StringIO
 
-# Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from config.settings import (
@@ -41,7 +29,6 @@ from src.reasoning_generator import generate_all_reasoning
 from src.honeypot_detector import detect_all_honeypots
 
 
-# ─── Page Configuration ──────────────────────────────────────────────────────
 st.set_page_config(
     page_title="AI Candidate Ranker — Redrob Hackathon",
     page_icon="🎯",
@@ -49,7 +36,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ─── Custom Styling ──────────────────────────────────────────────────────────
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -57,7 +43,7 @@ st.markdown("""
     .main { font-family: 'Inter', sans-serif; }
 
     .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg,
         padding: 1.2rem;
         border-radius: 12px;
         color: white;
@@ -78,7 +64,7 @@ st.markdown("""
     .score-bar {
         height: 8px;
         border-radius: 4px;
-        background: #e0e0e0;
+        background:
         margin: 2px 0;
     }
     .score-fill {
@@ -93,76 +79,37 @@ st.markdown("""
         font-weight: 600;
         font-size: 0.85rem;
     }
-    .rank-top { background: #d4edda; color: #155724; }
-    .rank-mid { background: #fff3cd; color: #856404; }
-    .rank-low { background: #f8d7da; color: #721c24; }
+    .rank-top { background:
+    .rank-mid { background:
+    .rank-low { background:
 
     .honeypot-flag {
-        background: #fff3cd;
-        border-left: 4px solid #ffc107;
+        background:
+        border-left: 4px solid
         padding: 0.5rem 1rem;
         border-radius: 4px;
         font-size: 0.85rem;
     }
 
     div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        background: linear-gradient(135deg,
         padding: 1rem;
         border-radius: 10px;
-        border: 1px solid #333;
+        border: 1px solid
     }
 </style>
-""", unsafe_allow_html=True)
 
-
-# ─── Header ──────────────────────────────────────────────────────────────────
-st.title("🎯 AI Candidate Ranking System")
-st.caption("Redrob Hackathon — Semantic + Structured + Behavioral Hybrid Ranker")
-
-# ─── Sidebar ─────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.header("⚙️ Configuration")
-
-    st.subheader("Scoring Weights")
-    st.info(f"""
     - **Semantic**: {WEIGHT_SEMANTIC:.0%}
     - **Structured**: {WEIGHT_STRUCTURED:.0%}
     - **Behavioral**: {WEIGHT_BEHAVIORAL:.0%}
     - **Bonus**: {WEIGHT_BONUS:.0%}
-    """)
-
-    st.subheader("Model")
-    st.code(EMBEDDING_MODEL_NAME)
-
-    st.subheader("JD Requirements")
-    st.write(f"**Role**: {JD_REQUIREMENTS['title']}")
-    st.write(f"**Experience**: {JD_REQUIREMENTS['experience_range'][0]}-{JD_REQUIREMENTS['experience_range'][1]} years")
-    st.write(f"**Required Skills**: {len(JD_REQUIREMENTS['required_skills'])}")
-    st.write(f"**Preferred Skills**: {len(JD_REQUIREMENTS['preferred_skills'])}")
-
-    st.divider()
-    st.subheader("📤 Upload Data")
-    uploaded_file = st.file_uploader(
-        "Upload candidates JSON (≤100 candidates)",
-        type=["json"],
-        help="Upload a JSON file with candidate profiles. Max 100 candidates for demo."
-    )
-
-    use_sample = st.checkbox("Use sample data (50 candidates)", value=True)
-
-
-# ─── Main Pipeline ───────────────────────────────────────────────────────────
-
-def run_pipeline(candidates_path_or_data):
-    """Run the full ranking pipeline and return results."""
+Run the full ranking pipeline and return results."""
 
     progress = st.progress(0, text="Initializing...")
 
-    # Step 1: Parse JD
     progress.progress(5, text="Parsing job description...")
     jd = parse_job_description()
 
-    # Step 2: Load candidates
     progress.progress(10, text="Loading candidates...")
     if isinstance(candidates_path_or_data, (str, Path)):
         candidates = load_candidates(Path(candidates_path_or_data))
@@ -171,18 +118,15 @@ def run_pipeline(candidates_path_or_data):
 
     actual_k = min(TOP_K, len(candidates))
 
-    # Step 2.5: Honeypot detection
     progress.progress(15, text="Running honeypot detection...")
     honeypot_results = detect_all_honeypots(candidates)
     honeypot_ids = {cid for cid, r in honeypot_results.items() if r["is_honeypot"]}
 
-    # Step 3: Enrich
     progress.progress(20, text="Building rich text representations...")
     enriched = enrich_all_candidates(candidates)
     candidate_ids = [cid for cid, _ in enriched]
     candidate_texts = [text for _, text in enriched]
 
-    # Step 4: Semantic scoring
     progress.progress(30, text="Computing semantic similarity (this may take a moment)...")
     semantic_scorer = SemanticScorer()
     semantic_scores = semantic_scorer.score(
@@ -192,20 +136,16 @@ def run_pipeline(candidates_path_or_data):
         use_cache=True,
     )
 
-    # Step 5: Structured scoring
     progress.progress(60, text="Computing structured match scores...")
     structured_scores = score_structured(candidates)
 
-    # Penalize honeypots
     for cid in honeypot_ids:
         if cid in structured_scores:
             structured_scores[cid] *= 0.1
 
-    # Step 6: Behavioral scoring
     progress.progress(70, text="Computing behavioral scores...")
     behavioral_scores = score_behavioral(candidates)
 
-    # Step 7: Rank
     progress.progress(85, text="Combining scores and ranking...")
     ranked = rank_candidates(
         candidates=candidates,
@@ -215,7 +155,6 @@ def run_pipeline(candidates_path_or_data):
         top_k=actual_k,
     )
 
-    # Generate reasoning
     progress.progress(95, text="Generating reasoning strings...")
     generate_all_reasoning(ranked, honeypot_results=honeypot_results)
 
@@ -226,7 +165,6 @@ def run_pipeline(candidates_path_or_data):
     return ranked, honeypot_results, len(candidates)
 
 
-# ─── Run Button ──────────────────────────────────────────────────────────────
 
 if "results" not in st.session_state:
     st.session_state.results = None
@@ -266,7 +204,6 @@ if run_button:
     st.session_state.total_candidates = total
 
 
-# ─── Results Display ─────────────────────────────────────────────────────────
 
 if st.session_state.results:
     ranked = st.session_state.results
@@ -275,7 +212,6 @@ if st.session_state.results:
 
     st.divider()
 
-    # Metrics row
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -291,10 +227,8 @@ if st.session_state.results:
 
     st.divider()
 
-    # Results table
     st.subheader("📊 Ranked Candidates")
 
-    # Build dataframe
     rows = []
     for entry in ranked:
         c = entry["candidate"]
@@ -319,7 +253,6 @@ if st.session_state.results:
 
     df = pd.DataFrame(rows)
 
-    # Display with column config
     st.dataframe(
         df,
         use_container_width=True,
@@ -348,7 +281,6 @@ if st.session_state.results:
         hide_index=True,
     )
 
-    # ── Detailed view ────────────────────────────────────────────────────
     st.divider()
     st.subheader("🔍 Candidate Deep Dive")
 
@@ -373,7 +305,6 @@ if st.session_state.results:
         st.markdown("#### 📝 Reasoning")
         st.info(entry.get("reasoning", ""))
 
-        # Skills
         st.markdown("#### 🛠️ Skills")
         skills_data = []
         for s in c.get("skills", []):
@@ -386,7 +317,6 @@ if st.session_state.results:
         if skills_data:
             st.dataframe(pd.DataFrame(skills_data), hide_index=True, use_container_width=True)
 
-        # Career
         st.markdown("#### 💼 Career History")
         for job in c.get("career_history", []):
             duration_yrs = job.get("duration_months", 0) / 12
@@ -420,14 +350,12 @@ if st.session_state.results:
         st.markdown(f"- GitHub Score: **{signals.get('github_activity_score', 'N/A')}**")
         st.markdown(f"- Profile Complete: **{signals.get('profile_completeness_pct', 0):.0%}**")
 
-        # Honeypot check
         hp = honeypots.get(entry["candidate_id"], {})
         if hp.get("is_honeypot"):
             st.warning(f"🍯 **Honeypot detected** (confidence: {hp['confidence']:.0%})")
             for flag in hp["flags"]:
                 st.caption(f"→ {flag}")
 
-    # ── Download CSV ─────────────────────────────────────────────────────
     st.divider()
     csv_data = df[["Candidate ID", "Rank", "Final Score", "Reasoning"]].rename(
         columns={"Candidate ID": "candidate_id", "Rank": "rank", "Final Score": "score", "Reasoning": "reasoning"}
@@ -443,10 +371,8 @@ if st.session_state.results:
     )
 
 else:
-    # Welcome state
     st.markdown("---")
     st.markdown("""
-    ### How it works
 
     This system ranks candidates using a **4-layer hybrid scoring** approach:
 

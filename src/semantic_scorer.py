@@ -14,7 +14,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from pathlib import Path
 
 from config.settings import (
@@ -31,7 +31,7 @@ class SemanticScorer:
     using sentence-transformers + FAISS.
     """
 
-    def __init__(self, model_name: str = None):
+    def __init__(self, model_name: Optional[str] = None):
         """
         Initialize the semantic scorer.
 
@@ -43,7 +43,9 @@ class SemanticScorer:
 
         print(f"  Loading embedding model: {model_name}")
         self.model = SentenceTransformer(model_name)
-        self.dimension = self.model.get_embedding_dimension()
+        dimension = self.model.get_embedding_dimension()
+        assert dimension is not None, "Embedding dimension could not be determined"
+        self.dimension: int = dimension
         print(f"  Embedding dimension: {self.dimension}")
 
     def score(

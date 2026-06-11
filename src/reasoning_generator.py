@@ -1,24 +1,6 @@
-"""
-Reasoning Generator (v2)
-
-Generates concise, specific, recruiter-facing reasoning strings for each
-ranked candidate. Designed to pass the Stage 4 manual review checks:
-
-1. Specific facts: References exact years, companies, skills from profile
-2. JD connection: Explains WHY this candidate fits specific JD requirements
-3. Honest concerns: Acknowledges gaps (location, notice, consulting)
-4. No hallucination: Every claim backed by actual profile data
-5. Variation: Each candidate gets genuinely different reasoning
-6. Rank consistency: Tone matches rank position (top = positive, bottom = honest)
-"""
-
 import random
-from typing import Dict, Any, List, Optional
-
+from typing import Dict, Any, List, Optional, Tuple
 from config.settings import REASONING_MAX_LENGTH, JD_REQUIREMENTS
-
-
-# ─── Tone templates based on rank tier ────────────────────────────────────────
 
 _TOP_TIER_STARTERS = [
     "Strong fit:",
@@ -43,7 +25,6 @@ _LOW_TIER_STARTERS = [
 
 
 def _get_rank_tier(rank: int, total: int) -> str:
-    """Determine rank tier for tone adjustment."""
     pct = rank / max(total, 1)
     if pct <= 0.15:
         return "top"
@@ -53,8 +34,7 @@ def _get_rank_tier(rank: int, total: int) -> str:
         return "low"
 
 
-def _get_matched_skills(candidate: Dict) -> List[str]:
-    """Find skills that match JD requirements (using exact name from profile)."""
+def _get_matched_skills(candidate: Dict) -> Tuple[List[str], List[str]]:
     skills = candidate.get("skills", [])
     required = set(JD_REQUIREMENTS["required_skills"])
     preferred = set(JD_REQUIREMENTS["preferred_skills"])
@@ -66,13 +46,11 @@ def _get_matched_skills(candidate: Dict) -> List[str]:
         name = s.get("name", "")
         name_lower = name.lower()
 
-        # Check required
         for r in required:
             if name_lower == r or (len(r) > 3 and r in name_lower) or (len(name_lower) > 3 and name_lower in r):
                 matched_required.append(name)
                 break
         else:
-            # Check preferred
             for p in preferred:
                 if name_lower == p or (len(p) > 3 and p in name_lower) or (len(name_lower) > 3 and name_lower in p):
                     matched_preferred.append(name)
@@ -82,18 +60,15 @@ def _get_matched_skills(candidate: Dict) -> List[str]:
 
 
 def _get_career_highlights(candidate: Dict) -> str:
-    """Build a career trajectory summary."""
     career = candidate.get("career_history", [])
     if not career:
         return ""
-
     titles = [j.get("title", "") for j in career if j.get("title")]
     companies = [j.get("company", "") for j in career if j.get("company")]
 
     if len(career) == 1:
         return f"{titles[0]} at {companies[0]}"
     else:
-        # Show progression
         latest = f"{titles[0]} at {companies[0]}"
         prev_companies = [c for c in companies[1:] if c]
         if prev_companies:
@@ -102,22 +77,19 @@ def _get_career_highlights(candidate: Dict) -> str:
 
 
 def _get_concerns(candidate: Dict, rank: int, total: int) -> List[str]:
-    """Identify honest concerns about the candidate."""
+
     profile = candidate["profile"]
     signals = candidate.get("redrob_signals", {})
     concerns = []
 
-    # Title mismatch
     title_lower = profile.get("current_title", "").lower()
     if any(wt in title_lower for wt in JD_REQUIREMENTS["weak_fit_titles"]):
         concerns.append(f"current title ({profile['current_title']}) not aligned with AI/ML role")
 
-    # Consulting background
     company_lower = profile.get("current_company", "").lower()
     if any(cc in company_lower for cc in JD_REQUIREMENTS["consulting_companies"]):
         concerns.append(f"consulting background ({profile['current_company']})")
 
-    # Experience out of range
     years = profile.get("years_of_experience", 0)
     min_exp, max_exp = JD_REQUIREMENTS["experience_range"]
     if years < min_exp:
@@ -125,7 +97,6 @@ def _get_concerns(candidate: Dict, rank: int, total: int) -> List[str]:
     elif years > max_exp + 2:
         concerns.append(f"overexperienced ({years:.1f}yr vs {min_exp}-{max_exp}yr target)")
 
-    # Location
     location = profile.get("location", "").lower()
     country = profile.get("country", "").lower()
     in_preferred = any(
@@ -135,12 +106,10 @@ def _get_concerns(candidate: Dict, rank: int, total: int) -> List[str]:
     if not in_preferred and location:
         concerns.append(f"location ({profile.get('location', 'unknown')}) outside preferred geographies")
 
-    # Notice period
     notice = signals.get("notice_period_days", 90)
     if notice > 60:
         concerns.append(f"high notice period ({notice} days)")
 
-    # Low responsiveness
     response_rate = signals.get("recruiter_response_rate", 0)
     if response_rate < 0.2:
         concerns.append(f"low recruiter response rate ({response_rate:.0%})")
@@ -153,12 +122,6 @@ def generate_reasoning(
     total_ranked: int,
     honeypot_results: Optional[Dict] = None,
 ) -> str:
-    """
-    Generate a specific, fact-based reasoning string for a single candidate.
-
-    Each reasoning is unique because it pulls directly from the candidate's
-    actual profile data rather than using generic templates.
-    """
     c = ranked_entry["candidate"]
     profile = c["profile"]
     signals = c.get("redrob_signals", {})
@@ -167,7 +130,6 @@ def generate_reasoning(
     tier = _get_rank_tier(rank, total_ranked)
     parts = []
 
-    # ── Starter (varied by tier) ─────────────────────────────────────────
     if tier == "top":
         starter = _TOP_TIER_STARTERS[rank % len(_TOP_TIER_STARTERS)]
     elif tier == "mid":
@@ -175,7 +137,6 @@ def generate_reasoning(
     else:
         starter = _LOW_TIER_STARTERS[rank % len(_LOW_TIER_STARTERS)]
 
-    # ── Core identity ────────────────────────────────────────────────────
     title = profile.get("current_title", "Unknown")
     company = profile.get("current_company", "")
     years = profile.get("years_of_experience", 0)
@@ -189,7 +150,6 @@ def generate_reasoning(
     identity += f" with {years:.1f} years experience"
     parts.append(identity)
 
-    # ── Skills match ─────────────────────────────────────────────────────
     matched_req, matched_pref = _get_matched_skills(c)
 
     if matched_req:
@@ -200,13 +160,11 @@ def generate_reasoning(
     else:
         parts.append("no directly matching AI/ML skills found")
 
-    # ── Career trajectory (for top/mid tier) ─────────────────────────────
     if tier in ("top", "mid"):
         career_highlight = _get_career_highlights(c)
         if career_highlight and len(career_highlight) < 60:
             parts.append(f"career: {career_highlight}")
 
-    # ── Positive signals ─────────────────────────────────────────────────
     positives = []
 
     response_rate = signals.get("recruiter_response_rate", 0)
@@ -224,7 +182,6 @@ def generate_reasoning(
     if notice <= 30:
         positives.append(f"available quickly ({notice}-day notice)")
 
-    # Location match
     location = profile.get("location", "").lower()
     if any(loc in location for loc in JD_REQUIREMENTS["location_preferences"]):
         positives.append(f"based in {profile.get('location', '')}")
@@ -232,11 +189,8 @@ def generate_reasoning(
     if positives:
         parts.append("; ".join(positives[:2]))
 
-    # ── Concerns (honest acknowledgment) ─────────────────────────────────
     concerns = _get_concerns(c, rank, total_ranked)
     if concerns:
-        # Top candidates: mention 1 concern gently
-        # Low candidates: lead with concerns
         if tier == "top" and concerns:
             parts.append(f"minor concern: {concerns[0]}")
         elif tier == "mid" and concerns:
@@ -244,17 +198,14 @@ def generate_reasoning(
         else:
             parts.append(f"concerns: {'; '.join(concerns[:2])}")
 
-    # ── Honeypot flag ────────────────────────────────────────────────────
     if honeypot_results:
         cid = c["candidate_id"]
         hp = honeypot_results.get(cid, {})
         if hp.get("is_honeypot"):
             parts.append(f"profile inconsistencies detected ({hp['flags'][0]})")
 
-    # ── Assemble ─────────────────────────────────────────────────────────
     reasoning = f"{starter} {'; '.join(parts)}"
 
-    # Truncate cleanly
     if len(reasoning) > REASONING_MAX_LENGTH:
         reasoning = reasoning[:REASONING_MAX_LENGTH - 3].rsplit(";", 1)[0] + "..."
 
@@ -265,10 +216,7 @@ def generate_all_reasoning(
     ranked_list: List[Dict[str, Any]],
     honeypot_results: Optional[Dict] = None,
 ) -> List[Dict[str, Any]]:
-    """
-    Generate reasoning for all ranked candidates.
-    Modifies ranked_list in-place by adding 'reasoning' key.
-    """
+
     total = len(ranked_list)
     for entry in ranked_list:
         entry["reasoning"] = generate_reasoning(

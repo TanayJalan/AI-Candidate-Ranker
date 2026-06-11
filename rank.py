@@ -1,31 +1,9 @@
-#!/usr/bin/env python3
-"""
-AI Candidate Ranking System — Main Entry Point
-
-Usage:
-    python rank.py
-    python rank.py --candidates ./data/raw/sample_candidates.json --out ./data/output/submission.csv
-    python rank.py --help
-
-This script orchestrates the full ranking pipeline:
-1. Parse job description → extract requirements
-2. Load & normalize candidate data
-3. Build rich text representations for embedding
-4. Compute semantic similarity scores (sentence-transformers + FAISS)
-5. Compute structured scores (title, skills, experience, industry, education)
-6. Compute behavioral scores (redrob platform signals)
-7. Combine into hybrid ranking with bonus modifiers
-8. Generate reasoning strings
-9. Output submission.csv
-"""
-
 import argparse
 import csv
 import sys
 import time
 from pathlib import Path
 
-# Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from config.settings import (
@@ -85,26 +63,22 @@ def main():
     print("  AI CANDIDATE RANKING SYSTEM")
     print("=" * 70)
 
-    # ── Step 1: Parse Job Description ────────────────────────────────────
     print("\n[1/7] Parsing job description...")
     jd = parse_job_description()
     print(f"  JD: {get_jd_summary()}")
     print(f"  Required skills: {len(jd['requirements']['required_skills'])}")
     print(f"  Semantic text length: {len(jd['semantic_text'])} chars")
 
-    # ── Step 2: Load Candidates ──────────────────────────────────────────
     print("\n[2/7] Loading candidates...")
     candidates = load_candidates(Path(args.candidates))
     actual_k = min(args.top_k, len(candidates))
     print(f"  Will rank top {actual_k} of {len(candidates)} candidates")
 
-    # ── Step 2.5: Honeypot Detection ─────────────────────────────────────
     print("\n[2.5/7] Running honeypot detection...")
     honeypot_results = detect_all_honeypots(candidates, verbose=args.verbose)
     honeypot_ids = {cid for cid, r in honeypot_results.items() if r["is_honeypot"]}
     print(f"  Flagged {len(honeypot_ids)} potential honeypots")
 
-    # ── Step 3: Enrich Candidate Texts ───────────────────────────────────
     print("\n[3/7] Building rich text representations...")
     enriched = enrich_all_candidates(candidates)
     candidate_ids = [cid for cid, _ in enriched]
@@ -113,7 +87,6 @@ def main():
     if args.verbose and enriched:
         print(f"  Sample text ({enriched[0][0]}): {enriched[0][1][:200]}...")
 
-    # ── Step 4: Semantic Scoring ─────────────────────────────────────────
     print("\n[4/7] Computing semantic similarity scores...")
     semantic_scorer = SemanticScorer()
     semantic_scores = semantic_scorer.score(
@@ -125,24 +98,20 @@ def main():
     avg_sem = sum(semantic_scores.values()) / len(semantic_scores) if semantic_scores else 0
     print(f"  Average semantic score: {avg_sem:.4f}")
 
-    # ── Step 5: Structured Scoring ───────────────────────────────────────
     print("\n[5/7] Computing structured match scores...")
     structured_scores = score_structured(candidates)
     avg_str = sum(structured_scores.values()) / len(structured_scores) if structured_scores else 0
     print(f"  Average structured score: {avg_str:.4f}")
 
-    # Zero out honeypot structured scores
     for cid in honeypot_ids:
         if cid in structured_scores:
-            structured_scores[cid] *= 0.1  # Severely penalize, don't fully zero)
+            structured_scores[cid] *= 0.1
 
-    # ── Step 6: Behavioral Scoring ───────────────────────────────────────
     print("\n[6/7] Computing behavioral scores...")
     behavioral_scores = score_behavioral(candidates)
     avg_beh = sum(behavioral_scores.values()) / len(behavioral_scores) if behavioral_scores else 0
     print(f"  Average behavioral score: {avg_beh:.4f}")
 
-    # ── Step 7: Combine & Rank ───────────────────────────────────────────
     print("\n[7/7] Combining scores and generating final ranking...")
     ranked = rank_candidates(
         candidates=candidates,
@@ -152,13 +121,10 @@ def main():
         top_k=actual_k,
     )
 
-    # Generate reasoning strings (pass honeypot info)
     generate_all_reasoning(ranked, honeypot_results=honeypot_results)
 
-    # Print summary
     print_ranking_summary(ranked, top_n=min(15, actual_k))
 
-    # ── Write Submission CSV ─────────────────────────────────────────────
     output_path = Path(args.out)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -182,7 +148,6 @@ def main():
     print(f"  Time elapsed: {elapsed:.1f}s")
     print(f"{'='*70}")
 
-    # Verbose mode: print detailed breakdown
     if args.verbose:
         print("\n  DETAILED SCORE BREAKDOWN:")
         print(f"  {'ID':<16} {'Sem':>7} {'Str':>7} {'Beh':>7} {'Bon':>7} {'Final':>7}")
