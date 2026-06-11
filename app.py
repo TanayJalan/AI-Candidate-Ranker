@@ -100,6 +100,39 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+st.title("🎯 AI Candidate Ranking System")
+st.caption("Redrob Hackathon — Semantic + Structured + Behavioral Hybrid Ranker")
+
+with st.sidebar:
+    st.header("⚙️ Configuration")
+
+    st.subheader("Scoring Weights")
+    st.info(f"""
+    - **Semantic**: {WEIGHT_SEMANTIC:.0%}
+    - **Structured**: {WEIGHT_STRUCTURED:.0%}
+    - **Behavioral**: {WEIGHT_BEHAVIORAL:.0%}
+    - **Bonus**: {WEIGHT_BONUS:.0%}
+    """)
+
+    st.subheader("Model")
+    st.code(EMBEDDING_MODEL_NAME)
+
+    st.subheader("JD Requirements")
+    st.write(f"**Role**: {JD_REQUIREMENTS['title']}")
+    st.write(f"**Experience**: {JD_REQUIREMENTS['experience_range'][0]}-{JD_REQUIREMENTS['experience_range'][1]} years")
+    st.write(f"**Required Skills**: {len(JD_REQUIREMENTS['required_skills'])}")
+    st.write(f"**Preferred Skills**: {len(JD_REQUIREMENTS['preferred_skills'])}")
+
+    st.divider()
+    st.subheader("📤 Upload Data")
+    uploaded_file = st.file_uploader(
+        "Upload candidates JSON (≤100 candidates)",
+        type=["json"],
+        help="Upload a JSON file with candidate profiles. Max 100 candidates for demo."
+    )
+
+    use_sample = st.checkbox("Use sample data (50 candidates)", value=True)
+
 def run_pipeline(candidates_path_or_data):
     progress = st.progress(0, text="Initializing...")
 
