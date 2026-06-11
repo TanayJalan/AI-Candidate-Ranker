@@ -43,7 +43,7 @@ st.markdown("""
     .main { font-family: 'Inter', sans-serif; }
 
     .metric-card {
-        background: linear-gradient(135deg,
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 1.2rem;
         border-radius: 12px;
         color: white;
@@ -64,7 +64,7 @@ st.markdown("""
     .score-bar {
         height: 8px;
         border-radius: 4px;
-        background:
+        background: #e0e0e0;
         margin: 2px 0;
     }
     .score-fill {
@@ -79,32 +79,28 @@ st.markdown("""
         font-weight: 600;
         font-size: 0.85rem;
     }
-    .rank-top { background:
-    .rank-mid { background:
-    .rank-low { background:
+    .rank-top { background: #d4edda; color: #155724; }
+    .rank-mid { background: #fff3cd; color: #856404; }
+    .rank-low { background: #f8d7da; color: #721c24; }
 
     .honeypot-flag {
-        background:
-        border-left: 4px solid
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
         padding: 0.5rem 1rem;
         border-radius: 4px;
         font-size: 0.85rem;
     }
 
     div[data-testid="stMetric"] {
-        background: linear-gradient(135deg,
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         padding: 1rem;
         border-radius: 10px;
-        border: 1px solid
+        border: 1px solid #333;
     }
 </style>
+""", unsafe_allow_html=True)
 
-    - **Semantic**: {WEIGHT_SEMANTIC:.0%}
-    - **Structured**: {WEIGHT_STRUCTURED:.0%}
-    - **Behavioral**: {WEIGHT_BEHAVIORAL:.0%}
-    - **Bonus**: {WEIGHT_BONUS:.0%}
-Run the full ranking pipeline and return results."""
-
+def run_pipeline(candidates_path_or_data):
     progress = st.progress(0, text="Initializing...")
 
     progress.progress(5, text="Parsing job description...")

@@ -65,7 +65,9 @@ A 4-layer hybrid AI ranking system built for the **Redrob Hackathon**. It evalua
 - **Data Handling**: Pandas, NumPy
 
 ## Screenshots
-*(Insert screenshots of your Streamlit Dashboard here!)*
+![Dashboard Overview](assets/dashboard_1.png)
+![Ranked Candidates](assets/dashboard_2.png)
+![Candidate Deep Dive](assets/dashboard_3.png)
 
 ## Demo Link
 [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/TanayJalan/candidate-matcher)
@@ -111,4 +113,27 @@ The system strictly adheres to hackathon compute limits while processing large c
 - **Local LLMs**: Utilize a quantized local LLM (like `Llama-3-8B`) to dynamically generate highly conversational, unique reasoning paragraphs for each candidate without relying on templates.
 - **Bias Mitigation Layer**: Automatically strip demographic proxies (names, gendered language, graduation years) prior to text embedding to ensure 100% merit-based evaluation.
 
+## License
+
+MIT License
+
+Copyright (c) 2026 Tanay Jalan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
