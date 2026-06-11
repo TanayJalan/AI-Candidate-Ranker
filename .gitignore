@@ -22,3 +22,6 @@ __pycache__/
 # output
 data/processed/
 data/output/
+
+# raw hackathon data
+\[PUB\]\ India_runs_data_and_ai_challenge/
