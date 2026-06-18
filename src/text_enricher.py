@@ -1,5 +1,8 @@
 from typing import Dict, Any
 
+from src.bias_mitigator import sanitize_text
+
+
 def enrich_candidate_text(candidate: Dict[str, Any]) -> str:
     parts = []
     profile = candidate["profile"]
@@ -118,7 +121,7 @@ def enrich_candidate_text(candidate: Dict[str, Any]) -> str:
     if location_parts:
         parts.append(f"Location: {', '.join(location_parts)}")
 
-    return " | ".join(parts)
+    return sanitize_text(" | ".join(parts))
 
 
 def enrich_all_candidates(candidates: list) -> list:

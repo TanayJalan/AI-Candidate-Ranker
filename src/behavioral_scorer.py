@@ -18,7 +18,7 @@ def score_candidate(candidate: Dict[str, Any]) -> Dict[str, float]:
         "interview_completion_rate": _score_interview_rate(signals),
         "profile_completeness": _score_completeness(signals),
         "recency": _score_recency(signals),
-        "github_activity": _score_github(signals),
+        "github_activity": _score_github(signals, candidate.get("profile", {})),
         "offer_acceptance_rate": _score_offer_acceptance(signals),
         "response_time": _score_response_time(signals),
         "notice_period": _score_notice_period(signals),
@@ -91,8 +91,29 @@ def _score_recency(signals: Dict) -> float:
         return 0.1
 
 
-def _score_github(signals: Dict) -> float:
+def _score_github(signals: Dict, profile: Dict) -> float:
 
+    # 1. First try to scrape actual contributions if a URL is provided
+    github_url = profile.get("github_url") or signals.get("github_url")
+    if github_url:
+        from src.github_scraper import extract_github_username, get_github_contributions
+        username = extract_github_username(github_url)
+        if username:
+            contributions = get_github_contributions(username)
+            if contributions is not None:
+                # Map contributions to a score (e.g., > 500 is 1.0)
+                if contributions == 0:
+                    return 0.1
+                elif contributions < 50:
+                    return 0.4
+                elif contributions < 200:
+                    return 0.7
+                elif contributions < 500:
+                    return 0.9
+                else:
+                    return 1.0
+
+    # 2. Fall back to the synthetic redrob_signal score
     score = signals.get("github_activity_score", -1)
 
     if score < 0:

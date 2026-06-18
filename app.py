@@ -107,11 +107,36 @@ with st.sidebar:
     st.header("⚙️ Configuration")
 
     st.subheader("Scoring Weights")
+    st.caption("Adjust the importance of each scoring dimension. Weights are auto-normalized to sum to 100%.")
+
+    raw_semantic = st.slider("🧠 Semantic", 0, 100, int(WEIGHT_SEMANTIC * 100), step=5, key="w_sem")
+    raw_structured = st.slider("📋 Structured", 0, 100, int(WEIGHT_STRUCTURED * 100), step=5, key="w_str")
+    raw_behavioral = st.slider("📊 Behavioral", 0, 100, int(WEIGHT_BEHAVIORAL * 100), step=5, key="w_beh")
+    raw_bonus = st.slider("⭐ Bonus", 0, 100, int(WEIGHT_BONUS * 100), step=5, key="w_bon")
+
+    # Normalize to sum to 1.0
+    raw_total = raw_semantic + raw_structured + raw_behavioral + raw_bonus
+    if raw_total > 0:
+        user_weights = {
+            "semantic": raw_semantic / raw_total,
+            "structured": raw_structured / raw_total,
+            "behavioral": raw_behavioral / raw_total,
+            "bonus": raw_bonus / raw_total,
+        }
+    else:
+        user_weights = {
+            "semantic": WEIGHT_SEMANTIC,
+            "structured": WEIGHT_STRUCTURED,
+            "behavioral": WEIGHT_BEHAVIORAL,
+            "bonus": WEIGHT_BONUS,
+        }
+
     st.info(f"""
-    - **Semantic**: {WEIGHT_SEMANTIC:.0%}
-    - **Structured**: {WEIGHT_STRUCTURED:.0%}
-    - **Behavioral**: {WEIGHT_BEHAVIORAL:.0%}
-    - **Bonus**: {WEIGHT_BONUS:.0%}
+    **Normalized:**
+    - Semantic: {user_weights['semantic']:.0%}
+    - Structured: {user_weights['structured']:.0%}
+    - Behavioral: {user_weights['behavioral']:.0%}
+    - Bonus: {user_weights['bonus']:.0%}
     """)
 
     st.subheader("Model")
@@ -126,14 +151,14 @@ with st.sidebar:
     st.divider()
     st.subheader("📤 Upload Data")
     uploaded_file = st.file_uploader(
-        "Upload candidates JSON (≤100 candidates)",
-        type=["json"],
-        help="Upload a JSON file with candidate profiles. Max 100 candidates for demo."
+        "Upload candidates JSON or a single PDF/DOCX resume",
+        type=["json", "pdf", "docx"],
+        help="Upload a JSON file (batch) or a single PDF/DOCX resume."
     )
 
     use_sample = st.checkbox("Use sample data (50 candidates)", value=True)
 
-def run_pipeline(candidates_path_or_data):
+def run_pipeline(candidates_path_or_data, weights=None):
     progress = st.progress(0, text="Initializing...")
 
     progress.progress(5, text="Parsing job description...")
@@ -182,6 +207,7 @@ def run_pipeline(candidates_path_or_data):
         structured_scores=structured_scores,
         behavioral_scores=behavioral_scores,
         top_k=actual_k,
+        weights=weights,
     )
 
     progress.progress(95, text="Generating reasoning strings...")
@@ -211,19 +237,35 @@ with col2:
 
 if run_button:
     if uploaded_file is not None:
-        data = json.loads(uploaded_file.read())
-        if not isinstance(data, list):
-            st.error("❌ Invalid file format: Expected a JSON list of candidates. You might have accidentally uploaded the schema or an invalid file!")
-            st.stop()
+        file_ext = uploaded_file.name.split('.')[-1].lower()
+        if file_ext == "json":
+            data = json.loads(uploaded_file.read())
+            if not isinstance(data, list):
+                st.error("❌ Invalid file format: Expected a JSON list of candidates.")
+                st.stop()
+                
+            if len(data) > 100:
+                st.warning(f"Uploaded file has {len(data)} candidates. Truncating to 100 for demo.")
+                data = data[:100]
+            from src.candidate_loader import _normalize_candidate
+            candidates = [_normalize_candidate(c) for c in data]
+        elif file_ext in ["pdf", "docx"]:
+            from src.resume_parser import extract_text_from_pdf, extract_text_from_docx, heuristic_parse_resume
+            file_bytes = uploaded_file.read()
+            if file_ext == "pdf":
+                raw_text = extract_text_from_pdf(file_bytes)
+            else:
+                raw_text = extract_text_from_docx(file_bytes)
             
-        if len(data) > 100:
-            st.warning(f"Uploaded file has {len(data)} candidates. Truncating to 100 for demo.")
-            data = data[:100]
-        from src.candidate_loader import _normalize_candidate
-        candidates = [_normalize_candidate(c) for c in data]
-        ranked, honeypots, total = run_pipeline(candidates)
+            mock_candidate = heuristic_parse_resume(raw_text, JD_REQUIREMENTS)
+            candidates = [mock_candidate]
+        else:
+            st.error("Unsupported file type.")
+            st.stop()
+
+        ranked, honeypots, total = run_pipeline(candidates, weights=user_weights)
     elif use_sample:
-        ranked, honeypots, total = run_pipeline(CANDIDATES_JSON)
+        ranked, honeypots, total = run_pipeline(CANDIDATES_JSON, weights=user_weights)
     else:
         st.error("Please upload a candidates JSON file or check 'Use sample data'.")
         st.stop()
@@ -376,7 +418,17 @@ if st.session_state.results:
         st.markdown(f"- Response Rate: **{signals.get('recruiter_response_rate', 0):.0%}**")
         st.markdown(f"- Open to Work: **{'Yes' if signals.get('open_to_work_flag') else 'No'}**")
         st.markdown(f"- Notice Period: **{signals.get('notice_period_days', 'N/A')}d**")
-        st.markdown(f"- GitHub Score: **{signals.get('github_activity_score', 'N/A')}**")
+        github_url = p.get("github_url") or signals.get("github_url")
+        if github_url:
+            st.markdown(f"- GitHub: [Profile]({github_url})")
+            from src.github_scraper import extract_github_username, get_github_contributions
+            username = extract_github_username(github_url)
+            if username:
+                contributions = get_github_contributions(username)
+                if contributions is not None:
+                    st.markdown(f"- GitHub Contributions (1yr): **{contributions}**")
+        else:
+            st.markdown(f"- GitHub Score: **{signals.get('github_activity_score', 'N/A')}**")
         st.markdown(f"- Profile Complete: **{signals.get('profile_completeness_pct', 0):.0%}**")
 
         hp = honeypots.get(entry["candidate_id"], {})

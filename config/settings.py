@@ -18,6 +18,11 @@ EMBEDDINGS_CACHE = PROCESSED_DIR / "candidate_embeddings.npy"
 EMBEDDING_MODEL_NAME = "all-mpnet-base-v2"
 EMBEDDING_BATCH_SIZE = 64
 
+# Cross-encoder re-ranking (two-stage scoring)
+CROSS_ENCODER_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-12-v2"
+CROSS_ENCODER_TOP_K = 50       # Re-rank top N candidates from bi-encoder
+CROSS_ENCODER_WEIGHT = 0.6     # Blend: (1-w)*bi_encoder + w*cross_encoder
+
 WEIGHT_SEMANTIC = 0.25
 WEIGHT_STRUCTURED = 0.40
 WEIGHT_BEHAVIORAL = 0.25

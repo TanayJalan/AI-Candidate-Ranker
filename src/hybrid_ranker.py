@@ -53,10 +53,23 @@ def rank_candidates(
     structured_scores: Dict[str, float],
     behavioral_scores: Dict[str, float],
     top_k: Optional[int] = None,
+    weights: Optional[Dict[str, float]] = None,
 ) -> List[Dict[str, Any]]:
 
     if top_k is None:
         top_k = TOP_K
+
+    # Use provided weights or fall back to global config
+    if weights is not None:
+        w_sem = weights.get("semantic", WEIGHT_SEMANTIC)
+        w_str = weights.get("structured", WEIGHT_STRUCTURED)
+        w_beh = weights.get("behavioral", WEIGHT_BEHAVIORAL)
+        w_bon = weights.get("bonus", WEIGHT_BONUS)
+    else:
+        w_sem = WEIGHT_SEMANTIC
+        w_str = WEIGHT_STRUCTURED
+        w_beh = WEIGHT_BEHAVIORAL
+        w_bon = WEIGHT_BONUS
 
     ranked = []
 
@@ -69,10 +82,10 @@ def rank_candidates(
         bonus = compute_bonus(candidate)
 
         final_score = (
-            WEIGHT_SEMANTIC * sem
-            + WEIGHT_STRUCTURED * struct
-            + WEIGHT_BEHAVIORAL * behav
-            + WEIGHT_BONUS * bonus
+            w_sem * sem
+            + w_str * struct
+            + w_beh * behav
+            + w_bon * bonus
         )
 
         ranked.append({

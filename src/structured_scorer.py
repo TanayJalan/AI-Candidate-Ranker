@@ -1,10 +1,11 @@
 import math
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from difflib import SequenceMatcher
 from config.settings import JD_REQUIREMENTS, STRUCTURED_WEIGHTS
 
-def score_candidate(candidate: Dict[str, Any]) -> Dict[str, float]:
-    req = JD_REQUIREMENTS
+def score_candidate(candidate: Dict[str, Any], req: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+    if req is None:
+        req = JD_REQUIREMENTS
 
     scores = {
         "title_match": _score_title(candidate, req),
@@ -24,20 +25,26 @@ def score_candidate(candidate: Dict[str, Any]) -> Dict[str, float]:
     elif scores["title_match"] <= 0.3:
         total *= 0.75
 
+    # Keyword stuffing penalty
+    stuffing_penalty = _detect_keyword_stuffing(candidate, req)
+    if stuffing_penalty < 1.0:
+        total *= stuffing_penalty
+
+    scores["keyword_stuffing_penalty"] = stuffing_penalty
     scores["total"] = min(1.0, max(0.0, total))
 
     return scores
 
-def score_all_candidates(candidates: List[Dict]) -> Dict[str, float]:
+def score_all_candidates(candidates: List[Dict[str, Any]], req: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
 
     results = {}
     for c in candidates:
-        scores = score_candidate(c)
+        scores = score_candidate(c, req=req)
         results[c["candidate_id"]] = scores["total"]
     return results
 
 
-def _score_title(candidate: Dict, req: Dict) -> float:
+def _score_title(candidate: Dict[str, Any], req: Dict[str, Any]) -> float:
 
     current_title = candidate["profile"]["current_title"].lower().strip()
 
@@ -67,7 +74,7 @@ def _score_title(candidate: Dict, req: Dict) -> float:
     return max(0.15, career_bonus)
 
 
-def _score_skills(candidate: Dict, req: Dict) -> float:
+def _score_skills(candidate: Dict[str, Any], req: Dict[str, Any]) -> float:
 
     candidate_skills = candidate.get("skills", [])
     if not candidate_skills:
@@ -125,7 +132,7 @@ def _score_skills(candidate: Dict, req: Dict) -> float:
     return min(1.0, normalized)
 
 
-def _score_experience(candidate: Dict, req: Dict) -> float:
+def _score_experience(candidate: Dict[str, Any], req: Dict[str, Any]) -> float:
 
     years = candidate["profile"].get("years_of_experience", 0)
     if years == 0:
@@ -149,7 +156,7 @@ def _score_experience(candidate: Dict, req: Dict) -> float:
         return max(0.2, 0.75 * math.exp(-0.3 * (distance / 3) ** 2))
 
 
-def _score_industry(candidate: Dict, req: Dict) -> float:
+def _score_industry(candidate: Dict[str, Any], req: Dict[str, Any]) -> float:
 
     profile = candidate["profile"]
     career = candidate.get("career_history", [])
@@ -195,7 +202,7 @@ def _score_industry(candidate: Dict, req: Dict) -> float:
     return 0.5
 
 
-def _score_education(candidate: Dict, req: Dict) -> float:
+def _score_education(candidate: Dict[str, Any], req: Dict[str, Any]) -> float:
 
     education = candidate.get("education", [])
     if not education:
@@ -292,3 +299,60 @@ def _skill_match(candidate_skill: str, required_skill: str) -> bool:
         return True
 
     return False
+
+
+def _detect_keyword_stuffing(candidate: Dict[str, Any], req: Dict[str, Any]) -> float:
+    """
+    Detect keyword stuffing: candidates who list many JD keywords
+    but with shallow proficiency and short duration.
+
+    Returns a penalty multiplier (1.0 = no penalty, < 1.0 = penalized).
+    """
+    skills = candidate.get("skills", [])
+    if not skills:
+        return 1.0
+
+    required = set(req.get("required_skills", []))
+    preferred = set(req.get("preferred_skills", []))
+    all_jd_keywords = required | preferred
+
+    if not all_jd_keywords:
+        return 1.0
+
+    matched_count = 0
+    beginner_count = 0
+    short_duration_count = 0
+
+    for skill in skills:
+        skill_name = skill.get("name", "").lower().strip()
+        if not skill_name:
+            continue
+
+        is_match = any(_skill_match(skill_name, kw) for kw in all_jd_keywords)
+        if is_match:
+            matched_count += 1
+            if skill.get("proficiency", "beginner") == "beginner":
+                beginner_count += 1
+            if skill.get("duration_months", 0) <= 3:
+                short_duration_count += 1
+
+    total_skills = len(skills)
+    if total_skills == 0:
+        return 1.0
+
+    # Keyword density: what fraction of their skills are JD keywords?
+    keyword_density = matched_count / total_skills
+
+    # Shallow ratio: what fraction of matched skills are beginner-level?
+    shallow_ratio = beginner_count / matched_count if matched_count > 0 else 0
+
+    # Short duration ratio: what fraction of matched skills have ≤ 3 months?
+    short_ratio = short_duration_count / matched_count if matched_count > 0 else 0
+
+    # Flag: high keyword density + mostly shallow proficiency + short durations
+    if keyword_density > 0.8 and shallow_ratio > 0.6 and short_ratio > 0.5:
+        return 0.3  # Heavy penalty
+    elif keyword_density > 0.7 and shallow_ratio > 0.5:
+        return 0.6  # Moderate penalty
+
+    return 1.0
