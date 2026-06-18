@@ -18,10 +18,12 @@ Furthermore, these systems cannot evaluate behavioral signals (like interview co
 
 ## Solution
 A 4-layer hybrid AI ranking system built for the **Redrob Hackathon**. It evaluates job fit the way a great recruiter would:
-- **Semantic Scoring**: Uses advanced NLP to conceptually understand the resume rather than just matching keywords.
+- **Two-Stage Semantic Scoring**: Uses advanced NLP to conceptually understand the resume rather than just matching keywords. It first filters candidates via a fast FAISS Bi-Encoder (`all-MiniLM-L6-v2`), then re-ranks the top results with a highly accurate Cross-Encoder (`ms-marco-MiniLM-L-12-v2`).
 - **Structured Scoring**: Applies strict rule-based heuristics to heavily penalize "keyword stuffer" traps and evaluate hard skills.
-- **Behavioral Scoring**: Uses platform signals to evaluate candidate engagement and reliability.
+- **Behavioral Scoring**: Uses platform signals to evaluate candidate engagement and reliability, including **Live GitHub Scraping** to pull real contribution metrics.
 - **Honeypot Detection**: Automatically flags mathematically impossible profiles.
+- **Bias Mitigation**: Automatically strips demographic proxies (names, gendered language, graduation years) prior to text embedding to ensure 100% merit-based evaluation.
+- **Universal Resume Parsing**: Supports batch JSON parsing as well as individual **PDF and DOCX** raw resume uploads via a free regex-heuristic engine.
 
 ## Architecture
 
@@ -59,10 +61,11 @@ A 4-layer hybrid AI ranking system built for the **Redrob Hackathon**. It evalua
 
 ## Tech Stack
 - **Language**: Python
-- **AI/ML**: HuggingFace `sentence-transformers` (`all-mpnet-base-v2`)
+- **AI/ML**: HuggingFace `sentence-transformers` (`all-MiniLM-L6-v2` & `cross-encoder/ms-marco-MiniLM-L-12-v2`)
 - **Vector Search**: FAISS (Facebook AI Similarity Search)
 - **Web App / Dashboard**: Streamlit
 - **Data Handling**: Pandas, NumPy
+- **Document Parsing**: `pypdf`, `mammoth`
 
 ## Screenshots
 ![Dashboard Overview](assets/dashboard_1.png)
@@ -107,11 +110,9 @@ The system strictly adheres to hackathon compute limits while processing large c
 - **Disk**: ~500 MB for data and the downloaded Transformer model.
 
 ## Future Improvements
-- **Two-Stage Retrieval**: Integrate a Cross-Encoder for the final Top 100 candidates to significantly boost the accuracy of the semantic ranking.
 - **Learning to Rank**: Replace hardcoded heuristic weights with an XGBoost or LightGBM model trained on historical hiring data to dynamically learn the best weights.
 - **Skill Ontology Knowledge Graph**: Implement a graph where the system understands that "Pandas" and "NumPy" are children of "Python Data Science" for smarter skill mapping.
 - **Local LLMs**: Utilize a quantized local LLM (like `Llama-3-8B`) to dynamically generate highly conversational, unique reasoning paragraphs for each candidate without relying on templates.
-- **Bias Mitigation Layer**: Automatically strip demographic proxies (names, gendered language, graduation years) prior to text embedding to ensure 100% merit-based evaluation.
 
 ## License
 
