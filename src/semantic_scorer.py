@@ -85,7 +85,7 @@ class SemanticScorer:
         Returns:
             Dict mapping candidate_id → semantic_score (0 to 1).
         """
-        assert len(candidate_texts) == len(candidate_ids), \
+        assert len(candidate_texts) == len(candidate_ids), "Length mismatch between texts and ids"
         
         candidate_embeddings = self._encode_candidates(candidate_texts, use_cache)
 
