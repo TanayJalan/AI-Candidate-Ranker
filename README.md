@@ -6,6 +6,7 @@ colorTo: purple
 sdk: streamlit
 app_file: app.py
 pinned: false
+app_port: 7860
 ---
 
 # AI Candidate Ranker
