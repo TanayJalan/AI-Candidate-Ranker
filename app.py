@@ -20,13 +20,9 @@ from config.settings import (
 )
 from src.job_parser import parse_job_description, get_jd_summary
 from src.candidate_loader import load_candidates
-from src.text_enricher import enrich_all_candidates
-from src.semantic_scorer import SemanticScorer
-from src.structured_scorer import score_all_candidates as score_structured
-from src.behavioral_scorer import score_all_candidates as score_behavioral
-from src.hybrid_ranker import rank_candidates
-from src.reasoning_generator import generate_all_reasoning
-from src.honeypot_detector import detect_all_honeypots
+# Heavy ML imports (semantic_scorer, structured_scorer, behavioral_scorer,
+# text_enricher, honeypot_detector, reasoning_generator) are lazy-loaded
+# inside run_pipeline() so the app boots fast on HF Spaces.
 
 
 st.set_page_config(
@@ -159,6 +155,15 @@ with st.sidebar:
     use_sample = st.checkbox("Use sample data (50 candidates)", value=True)
 
 def run_pipeline(candidates_path_or_data, weights=None):
+    # Lazy imports — keeps app startup fast for HF Spaces health checks
+    from src.text_enricher import enrich_all_candidates
+    from src.semantic_scorer import SemanticScorer
+    from src.structured_scorer import score_all_candidates as score_structured
+    from src.behavioral_scorer import score_all_candidates as score_behavioral
+    from src.hybrid_ranker import rank_candidates
+    from src.reasoning_generator import generate_all_reasoning
+    from src.honeypot_detector import detect_all_honeypots
+
     progress = st.progress(0, text="Initializing...")
 
     progress.progress(5, text="Parsing job description...")
