@@ -4,6 +4,7 @@ FROM python:3.10-slim
 RUN apt-get update && apt-get install -y \
     build-essential \
     libomp-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up a new user named "user" with user ID 1000
@@ -29,5 +30,7 @@ COPY --chown=user . $HOME/app/
 RUN mkdir -p data/output data/processed data/raw
 
 EXPOSE 7860
+
+HEALTHCHECK CMD curl --fail http://localhost:7860/_stcore/health || exit 1
 
 CMD ["streamlit", "run", "app.py", "--server.port", "7860", "--server.address", "0.0.0.0", "--server.enableCORS", "false", "--server.enableXsrfProtection", "false"]
