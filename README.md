@@ -3,8 +3,7 @@ title: Candidate Matcher
 emoji: 🎯
 colorFrom: blue
 colorTo: purple
-sdk: streamlit
-app_file: app.py
+sdk: docker
 pinned: false
 app_port: 7860
 ---
