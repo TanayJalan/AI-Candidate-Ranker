@@ -1,9 +1,9 @@
-# Core ML
+# Core ML — CPU-only torch to keep image small on HF Spaces
 --extra-index-url https://download.pytorch.org/whl/cpu
+torch
 sentence-transformers
 faiss-cpu
 numpy
-torch
 
 # Data
 pandas
@@ -20,6 +20,3 @@ pypdf
 
 # Dashboard
 streamlit
-
-# Testing
-pytest
